@@ -6,7 +6,6 @@ import tempfile
 from typing import List
 import logging
 
-import streamlit as st
 from moviepy import concatenate_videoclips, VideoFileClip
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
@@ -15,7 +14,6 @@ from pydantic_ai.providers.google_gla import GoogleGLAProvider
 from config import api_key
 import nest_asyncio
 nest_asyncio.apply()
-import re
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -129,15 +127,16 @@ def create_video_from_code(code: str, chapter_number: int) -> str:
 
     # Construct the video file name. Manim names the file based on the class name.
     # Extract the class name from the python code.
+    import re
     match = re.search(r"class\s+(\w+)\(Scene\):", code)
     if match:
         class_name = match.group(1)
         video_file_name = f"{class_name}.mp4"
-        return os.path.join("./media/videos/temp/480p15/", video_file_name)
+        return video_file_name
     else:
         raise ValueError(f"Could not extract class name from Manim code for chapter {chapter_number}")
 
-async def generate_video(concept: str):
+async def main(concept: str):
     """Generates a video explanation for a given concept using Manim with error correction."""
     logging.info(f"Generating video for concept: {concept}")
     outline = generate_video_outline(concept)
@@ -167,12 +166,10 @@ async def generate_video(concept: str):
                 logging.debug(f"Fixed Manim code (Attempt {attempts}):\n{manim_code}")
             except ValueError as e:
                 logging.error(f"Error processing Manim code for chapter {i + 1}: {e}")
-                st.error(f"Error processing chapter {i + 1}: {e}")
-                return None  # Stop processing if a critical error occurs with code structure
+                return  # Stop processing if a critical error occurs with code structure
             except FileNotFoundError:
                 logging.error("Manim not found. Please ensure it's installed and in your PATH.")
-                st.error("Manim not found. Please ensure it's installed and in your PATH.")
-                return None
+                return
             except subprocess.TimeoutExpired:
                 logging.error(f"Manim process timed out for chapter {i + 1}. Attempting to fix...")
                 manim_code = fix_manim_code(f"Manim process timed out.", manim_code)
@@ -180,59 +177,29 @@ async def generate_video(concept: str):
 
         if not success:
             logging.error(f"Failed to generate video for chapter {i + 1} after {max_attempts} attempts. Skipping chapter.")
-            st.warning(f"Failed to generate video for chapter {i + 1}. Skipping.")
             continue
 
     # Combine the video files
-    final_video_path = None
     if video_files:
         logging.info("Combining video files...")
-        try:
-            clips = [VideoFileClip(vf) for vf in video_files if os.path.exists(vf)]
-            if clips:
-                final_video_path = f"final_video.mp4"
-                final_clip = concatenate_videoclips(clips)
-                final_clip.write_videofile(final_video_path, codec="libx264", audio_codec="aac")
-                final_clip.close()
-                logging.info(f"Final video created: {final_video_path}")
-                st.success("Video generation complete!")
-            else:
-                logging.warning("No valid video files to combine.")
-                st.warning("No valid video files were generated.")
-        except Exception as e:
-            logging.error(f"Error combining video files: {e}")
-            st.error(f"Error combining video files: {e}")
+        clips = [VideoFileClip("./media/videos/temp/480p15/"+video_file) for video_file in video_files]
+        final_video_path = f"final.mp4"
+        final_clip = concatenate_videoclips(clips)
+        final_clip.write_videofile(final_video_path, codec="libx264", audio_codec="aac")
+        final_clip.close()
+
+        logging.info(f"Final video created: {final_video_path}")
 
         # Clean up intermediate video files
         for video_file in video_files:
             try:
-                if os.path.exists(video_file):
-                    os.remove(video_file)
-                    logging.info(f"Deleted intermediate video file: {video_file}")
+                os.remove(video_file)
+                logging.info(f"Deleted intermediate video file: {video_file}")
             except Exception as e:
                 logging.error(f"Error deleting intermediate video file {video_file}: {e}")
     else:
         logging.warning("No video files to combine.")
-        st.warning("No video files were generated.")
-
-    return final_video_path
-
-def main():
-    st.title("Explanatory Video Generator")
-    concept = st.text_input("Enter the concept for the video:")
-
-    if st.button("Generate Video"):
-        if concept:
-            with st.spinner("Generating video... This might take a few minutes."):
-                final_video_file = asyncio.run(generate_video(concept))
-            if final_video_file and os.path.exists(final_video_file):
-                st.video(final_video_file)
-            elif final_video_file:
-                st.error("Error: Final video file not found.")
-            else:
-                st.info("Video generation process completed without creating a final video.")
-        else:
-            st.warning("Please enter a concept.")
 
 if __name__ == "__main__":
-    main()
+    concept = input("Enter your Prompt: ")  # Replace with your concept
+    asyncio.run(main(concept))
