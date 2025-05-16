@@ -52,12 +52,14 @@ Here's how to get the video generator up and running:
 
 4.  **Run the Application:**
     ```bash
-    python app.py
+    streamlit run app.py
+    or
+    python app_no_ui.py
     ```
 
 ## Usage
 
-1.  Run the `app.py` script as described in the setup instructions.
-2.  The application will take a text prompt as input.
+1.  Run the `app.py`/`app_no_ui.py` script as described in the setup instructions.
+2.  The application will take a text prompt as input. (in streamlit/cmd line)
 3.  The AI will process the prompt, generate a video script, and then create the video.
 4.  The generated video will be saved to a `final.mp4` file.
