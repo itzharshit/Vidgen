@@ -201,5 +201,5 @@ async def main(concept: str):
         logging.warning("No video files to combine.")
 
 if __name__ == "__main__":
-    concept = "Explain me the formula of a area of a square"  # Replace with your concept
+    concept = input("Enter your Prompt: ")  # Replace with your concept
     asyncio.run(main(concept))
