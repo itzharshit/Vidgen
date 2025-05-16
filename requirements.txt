@@ -3,3 +3,4 @@ manim
 moviepy
 pydantic
 nest_asyncio
+streamlit
