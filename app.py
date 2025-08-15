@@ -12,11 +12,12 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.models.gemini import GeminiModel
 from pydantic_ai.providers.google_gla import GoogleGLAProvider
-from config import api_key
+#from config import api_key
 import nest_asyncio
 nest_asyncio.apply()
 import re
 
+api_key = os.environ.get("API_KEY")
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
